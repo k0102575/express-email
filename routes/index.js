@@ -4,8 +4,21 @@ const router = express.Router();
 
 const nodemailer = require('nodemailer');
 const handlebars = require('handlebars');
+const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
+
+const readHTMLFile = function (path, callback) {
+  fs.readFile(path, { encoding: 'utf-8' }, function (err, html) {
+    if (err) {
+      callback(err);
+      throw err;
+    } else {
+      console.log(html);
+      callback(null, html);
+    }
+  });
+};
 
 /* GET home page. */
 router.get('/', function (req, res) {
@@ -21,20 +34,24 @@ router.post('/', (req, res) => {
     },
   });
 
-  let mailOptions = {
-    from: process.env.FROM_URL,
-    to: process.env.TO_URL,
-    subject: 'Sending Email using Node.js',
-    text: 'That was easy!',
-  };
-
-  transporter.sendMail(mailOptions, function (error, info) {
-    if (error) {
-      console.log(error);
-      res.json({ error: error });
-    } else {
-      res.json({ result: true });
-    }
+  readHTMLFile('./public/email.html', function (err, html) {
+    var template = handlebars.compile(html);
+    var replacements = {};
+    var htmlToSend = template(replacements);
+    let mailOptions = {
+      from: process.env.FROM_URL,
+      to: process.env.TO_URL,
+      subject: 'Sending Email using Node.js',
+      html: htmlToSend,
+    };
+    transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+        console.log(error);
+        res.json({ error: error });
+      } else {
+        res.json({ result: true });
+      }
+    });
   });
 });
 
